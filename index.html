@@ -1287,12 +1287,26 @@ function handleImportFile(e) {
         _importHeaders = headers;
         _importRows    = rows;
       } else {
-        const wb   = XLSX.read(ev.target.result, { type:'array' });
-        const ws   = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
-        if (!data.length) { toast('Empty spreadsheet'); return; }
-        _importHeaders = data[0].map(String);
-        _importRows    = data.slice(1).map(r => r.map(String));
+        const wb = XLSX.read(ev.target.result, { type:'array' });
+        let canonHeaders = null, allRows = [];
+        const norm = s => s.toLowerCase().replace(/[^a-z]/g, '');
+        for (const sheetName of wb.SheetNames) {
+          const data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header:1, defval:'' });
+          if (data.length < 2) continue;
+          const sheetHeaders = data[0].map(String);
+          const dataRows = data.slice(1).map(r => r.map(String));
+          if (!canonHeaders) {
+            canonHeaders = sheetHeaders;
+            allRows = dataRows;
+          } else {
+            const mapping = canonHeaders.map(ch => sheetHeaders.findIndex(sh => norm(sh) === norm(ch)));
+            if (!mapping.some(i => i >= 0)) continue;
+            for (const row of dataRows) allRows.push(mapping.map(i => i >= 0 ? (row[i]||'') : ''));
+          }
+        }
+        if (!canonHeaders?.length) { toast('Empty spreadsheet'); return; }
+        _importHeaders = canonHeaders;
+        _importRows    = allRows;
       }
       if (!_importHeaders.length) { toast('No columns found'); return; }
       _showImportModal();
@@ -1390,10 +1404,15 @@ function confirmImport() {
   const si=ci('imp-score'), fi=ci('imp-fu'), noi=ci('imp-notes');
   const cell = (row, i) => i >= 0 ? (row[i]||'').toString().trim() : '';
 
-  const added = [];
+  const normKey = s => s.toLowerCase().trim();
+  const existing = new Set(contacts.map(c => `${normKey(c.name)}|${normKey(c.co)}`));
+  const added = []; let skipped = 0;
   for (const row of _importRows) {
     const name = cell(row, ni), co = cell(row, coi);
     if (!name && !co) continue;
+    const key = `${normKey(name||co)}|${normKey(co||name)}`;
+    if (existing.has(key)) { skipped++; continue; }
+    existing.add(key);
     const raw = cell(row, si);
     const score = Math.min(5, Math.max(1, parseInt(raw) || 3));
     const rawFu = cell(row, fi).toLowerCase();
@@ -1401,12 +1420,12 @@ function confirmImport() {
     added.push({ id:uid(), name:name||co, co:co||name, role:cell(row,ri),
       email:cell(row,ei), score, notes:cell(row,noi), fu, ts:Date.now() });
   }
-  if (!added.length) { toast('No valid contacts found'); return; }
-  contacts = [...added, ...contacts];
-  save('a2e_contacts', contacts);
+  if (!added.length && !skipped) { toast('No valid contacts found'); return; }
+  if (added.length) { contacts = [...added, ...contacts]; save('a2e_contacts', contacts); }
   closeModal('m-import');
   renderContacts();
-  toast(`Imported ${added.length} contact${added.length !== 1 ? 's' : ''}`);
+  const skipNote = skipped ? `, ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped` : '';
+  toast(added.length ? `Imported ${added.length} contact${added.length !== 1 ? 's' : ''}${skipNote}` : `All ${skipped} contacts already exist`);
 }
 
 // ══════════════════════════════════════════════
