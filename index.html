@@ -916,7 +916,7 @@ async function callAPI(company, key) {
     'anthropic-version': '2023-06-01',
     'content-type': 'application/json',
     'anthropic-beta': 'web-search-2025-03-05',
-    'anthropic-dangerous-allow-any-cross-origin-source': 'true'
+    'anthropic-dangerous-allow-browser': 'true'
   };
   const tools = [{ type:'web_search_20250305', name:'web_search', max_uses:5 }];
   const baseBody = {
