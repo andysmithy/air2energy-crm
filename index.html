@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Air2Energy — CRM</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --teal:        #064942;
+  --teal-mid:    #0a6b5e;
+  --green:       #4AA67F;
+  --green-bg:    rgba(74,166,127,0.1);
+  --navy:        #212631;
+  --cream:       #F6F6F6;
+  --white:       #ffffff;
+  --border:      rgba(6,73,66,0.12);
+  --border-mid:  rgba(6,73,66,0.2);
+  --text:        #212631;
+  --muted:       #5b6066;
+  --r:           8px;
+  --r-lg:        14px;
+  --shadow:      0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg:   0 8px 24px rgba(0,0,0,0.12);
+}
+
+body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; font-size:14px; color:var(--text); background:var(--cream); line-height:1.5; -webkit-font-smoothing:antialiased; }
+
+/* ── HEADER ── */
+.header { background:var(--teal); color:#fff; height:52px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; position:sticky; top:0; z-index:100; }
+.header-logo { font-weight:700; font-size:15px; letter-spacing:-0.02em; }
+.header-logo em { color:var(--green); font-style:normal; }
+.header-sub { font-size:11px; opacity:0.55; letter-spacing:0.08em; text-transform:uppercase; }
+
+/* ── TABS ── */
+.tabs { background:var(--white); border-bottom:1px solid var(--border); display:flex; padding:0 20px; gap:2px; }
+.tab { padding:11px 14px; border:none; background:none; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; }
+.tab.on { color:var(--teal); border-bottom-color:var(--teal); }
+.tab:hover:not(.on) { color:var(--text); }
+
+/* ── LAYOUT ── */
+.pane { display:none; padding:24px; max-width:1200px; margin:0 auto; }
+.pane.on { display:block; }
+.row { display:flex; gap:16px; align-items:flex-start; }
+.col { flex:1; min-width:0; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:640px){.two-col{grid-template-columns:1fr;}.row{flex-direction:column;}}
+
+/* ── CARD ── */
+.card { background:var(--white); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; box-shadow:var(--shadow); }
+.card + .card { margin-top:14px; }
+.card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.card-title { font-size:14px; font-weight:600; }
+.card-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+
+/* ── BUTTONS ── */
+.btn { display:inline-flex; align-items:center; gap:5px; padding:7px 13px; border-radius:var(--r); font-size:13px; font-weight:500; cursor:pointer; border:1px solid transparent; transition:all .15s; font-family:inherit; line-height:1; }
+.btn-primary { background:var(--teal); color:#fff; }
+.btn-primary:hover { background:var(--teal-mid); }
+.btn-outline { background:var(--white); color:var(--text); border-color:var(--border-mid); }
+.btn-outline:hover { background:var(--cream); }
+.btn-ghost { background:none; color:var(--muted); border-color:var(--border); }
+.btn-ghost:hover { color:var(--text); background:var(--cream); }
+.btn-danger { background:var(--white); color:#dc2626; border-color:#fecaca; }
+.btn-danger:hover { background:#fef2f2; }
+.btn-sm { padding:4px 9px; font-size:12px; }
+.btn-icon { padding:5px 7px; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ── FORMS ── */
+input,textarea,select { width:100%; padding:7px 10px; border:1px solid var(--border-mid); border-radius:var(--r); font-size:13px; font-family:inherit; color:var(--text); background:var(--white); outline:none; transition:border-color .15s,box-shadow .15s; }
+input:focus,textarea:focus,select:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(74,166,127,0.12); }
+textarea { resize:vertical; min-height:72px; }
+label { display:block; font-size:11px; font-weight:600; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.05em; }
+.fg { margin-bottom:14px; }
+.fg:last-child { margin-bottom:0; }
+
+/* ── TABLE ── */
+.tbl { width:100%; border-collapse:collapse; }
+.tbl th { text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); padding:8px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+.tbl td { padding:10px 12px; border-bottom:1px solid rgba(6,73,66,0.06); vertical-align:middle; font-size:13px; }
+.tbl tr:last-child td { border-bottom:none; }
+.tbl tbody tr:hover td { background:var(--cream); }
+
+/* ── SCORE DOTS ── */
+.dots { display:inline-flex; gap:3px; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--border); }
+.dot.on { background:var(--green); }
+.dot.on.hi { background:var(--teal); }
+
+/* ── SCORE PICKER ── */
+.score-row { display:flex; gap:6px; }
+.score-btn { flex:1; padding:7px; border:1px solid var(--border-mid); background:var(--white); border-radius:var(--r); font-weight:600; font-size:13px; color:var(--muted); cursor:pointer; transition:all .15s; }
+.score-btn.on { background:var(--teal); border-color:var(--teal); color:#fff; }
+
+/* ── AVATAR ── */
+.av { width:30px; height:30px; border-radius:50%; background:var(--green-bg); color:var(--teal); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+
+/* ── FOLLOW-UP TOGGLE ── */
+.fu { width:20px; height:20px; border-radius:4px; border:1.5px solid var(--border-mid); cursor:pointer; background:var(--white); display:inline-flex; align-items:center; justify-content:center; font-size:11px; transition:all .15s; }
+.fu.on { background:var(--teal); border-color:var(--teal); color:#fff; }
+
+/* ── BADGES ── */
+.badge { display:inline-flex; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:500; }
+.b-gray  { background:rgba(91,96,102,.1); color:var(--muted); }
+.b-green { background:rgba(74,166,127,.13); color:#065f46; }
+.b-teal  { background:rgba(6,73,66,.1); color:var(--teal); }
+.b-amber { background:rgba(217,119,6,.1); color:#92400e; }
+.b-blue  { background:rgba(59,130,246,.1); color:#1d4ed8; }
+.b-red   { background:rgba(220,38,38,.08); color:#991b1b; }
+
+/* ── PROGRESS ── */
+.prog-wrap { margin-bottom:10px; }
+.prog-top { display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px; color:var(--muted); }
+.prog-bar { height:6px; background:var(--border); border-radius:999px; overflow:hidden; }
+.prog-fill { height:100%; background:var(--green); border-radius:999px; transition:width .4s ease; }
+
+/* ── STATS ── */
+.stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr);}}
+.stat { background:var(--white); border:1px solid var(--border); border-radius:var(--r-lg); padding:14px; }
+.stat-val { font-size:26px; font-weight:700; color:var(--teal); letter-spacing:-.03em; line-height:1; margin-bottom:3px; }
+.stat-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+
+/* ── SECTION ITEM ── */
+.sec-item { display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--white); border-radius:var(--r); border:1px solid var(--border); cursor:pointer; transition:border-color .15s; margin-bottom:6px; }
+.sec-item:hover { border-color:var(--green); }
+.sec-num { font-family:monospace; font-size:12px; color:var(--green); font-weight:700; width:28px; flex-shrink:0; }
+.sec-text { flex:1; }
+.sec-title { font-size:13px; font-weight:500; }
+.sec-notes { font-size:11px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px; }
+
+/* ── INTERVIEW / LOI ROW ── */
+.list-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+.list-row:last-child { border-bottom:none; }
+.list-main { flex:1; min-width:0; }
+.list-name { font-weight:500; font-size:13px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.list-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+
+/* ── TYPE TAG ── */
+.ttag { display:inline-flex; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.t-bldg { background:rgba(6,73,66,.1); color:var(--teal); }
+.t-boil { background:rgba(74,166,127,.13); color:#065f46; }
+.t-other { background:rgba(91,96,102,.1); color:var(--muted); }
+
+/* ── COMPETITOR CARD ── */
+.comp-card { background:var(--white); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; }
+.comp-name { font-weight:600; font-size:14px; margin-bottom:4px; }
+.comp-desc { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.comp-diff { font-size:12px; margin-bottom:6px; }
+.comp-diff strong { color:var(--teal); }
+.comp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; }
+
+/* ── THREAT ── */
+.threat { display:inline-flex; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:500; }
+.th-low  { background:rgba(74,166,127,.12); color:var(--teal); }
+.th-med  { background:rgba(217,119,6,.1); color:#92400e; }
+.th-high { background:rgba(220,38,38,.08); color:#991b1b; }
+
+/* ── RESEARCH OUTPUT ── */
+.res-out { background:var(--cream); border:1px solid var(--border); border-radius:var(--r-lg); padding:20px; line-height:1.65; }
+.res-out h2 { font-size:13px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:.06em; margin:18px 0 6px; padding-bottom:5px; border-bottom:1px solid var(--border); }
+.res-out h2:first-child { margin-top:0; }
+.res-out p { font-size:13px; color:var(--text); margin-bottom:8px; }
+.res-out ul,.res-out ol { padding-left:18px; margin-bottom:8px; }
+.res-out li { font-size:13px; margin-bottom:3px; }
+.res-out strong { color:var(--navy); }
+
+/* ── MODAL ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.38); display:none; align-items:center; justify-content:center; z-index:200; padding:16px; }
+.overlay.on { display:flex; }
+.modal { background:var(--white); border-radius:var(--r-lg); padding:22px; width:100%; max-width:500px; max-height:92vh; overflow-y:auto; box-shadow:var(--shadow-lg); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.modal-title { font-size:15px; font-weight:600; }
+.modal-x { width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--white); cursor:pointer; font-size:16px; color:var(--muted); display:flex; align-items:center; justify-content:center; }
+.modal-x:hover { background:var(--cream); }
+.modal-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:18px; padding-top:14px; border-top:1px solid var(--border); }
+
+/* ── TOOLBAR ── */
+.toolbar { display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+.toolbar-r { margin-left:auto; display:flex; gap:8px; }
+.search-wrap { position:relative; flex:1; max-width:280px; }
+.search-wrap input { padding-left:32px; }
+.search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none; }
+
+/* ── SPINNER ── */
+.spinner { width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--teal); border-radius:50%; animation:spin .6s linear infinite; flex-shrink:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:22px; right:22px; background:var(--teal); color:#fff; padding:9px 16px; border-radius:var(--r); font-size:13px; font-weight:500; z-index:300; transform:translateY(80px); opacity:0; transition:all .3s ease; pointer-events:none; }
+.toast.on { transform:translateY(0); opacity:1; }
+
+/* ── EMPTY ── */
+.empty { text-align:center; padding:36px 16px; color:var(--muted); }
+.empty-ico { font-size:28px; margin-bottom:10px; }
+.empty-t { font-size:14px; font-weight:600; color:var(--text); margin-bottom:5px; }
+
+/* ── SAVED RESEARCH ── */
+.saved-r { padding:10px 12px; background:var(--cream); border:1px solid var(--border); border-radius:var(--r); cursor:pointer; margin-bottom:6px; transition:border-color .15s; }
+.saved-r:hover { border-color:var(--green); }
+.saved-rco { font-weight:600; font-size:13px; }
+.saved-rd { font-size:11px; color:var(--muted); margin-top:1px; }
+
+/* API key row */
+.api-row { display:flex; gap:8px; align-items:flex-end; margin-bottom:18px; }
+.api-row .fg { flex:1; margin-bottom:0; }
+
+/* Research form */
+.res-form { display:flex; gap:8px; margin-bottom:18px; }
+.res-form input { flex:1; }
+
+/* Error block */
+.err-block { padding:12px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:var(--r); font-size:13px; color:#991b1b; margin-bottom:14px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">Air2Energy <em>CRM</em></div>
+  <div class="header-sub">Internal Dashboard</div>
+</header>
+
+<nav class="tabs">
+  <button class="tab on" data-tab="contacts">Contacts</button>
+  <button class="tab" data-tab="research">Research Agent</button>
+  <button class="tab" data-tab="tracker">Market Tracker</button>
+  <button class="tab" data-tab="competitors">Competitors</button>
+</nav>
+
+<!-- ═══════════════════ CONTACTS ═══════════════════ -->
+<div id="pane-contacts" class="pane on">
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input id="cs-search" type="text" placeholder="Search contacts…" oninput="renderContacts()" />
+    </div>
+    <select id="cs-score" onchange="renderContacts()" style="width:auto;">
+      <option value="">All scores</option>
+      <option value="5">★★★★★  5</option>
+      <option value="4">★★★★  4</option>
+      <option value="3">★★★  3</option>
+      <option value="2">★★  2</option>
+      <option value="1">★  1</option>
+    </select>
+    <select id="cs-fu" onchange="renderContacts()" style="width:auto;">
+      <option value="">All</option>
+      <option value="1">Follow-up flagged</option>
+    </select>
+    <div class="toolbar-r">
+      <button class="btn btn-primary" onclick="openContactModal()">+ Add Contact</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="tbl" id="contacts-tbl">
+      <thead>
+        <tr>
+          <th style="width:38px;"></th>
+          <th>Name</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Score</th>
+          <th style="width:60px;">Follow-up</th>
+          <th>Notes</th>
+          <th style="width:72px;"></th>
+        </tr>
+      </thead>
+      <tbody id="contacts-body"></tbody>
+    </table>
+    <div id="contacts-empty" class="empty" style="display:none;">
+      <div class="empty-ico">👤</div>
+      <div class="empty-t">No contacts yet</div>
+      <div>Add your first contact to get started.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RESEARCH ═══════════════════ -->
+<div id="pane-research" class="pane">
+  <div style="max-width:820px;">
+    <div class="api-row">
+      <div class="fg">
+        <label>Anthropic API Key</label>
+        <input id="api-key" type="password" placeholder="sk-ant-…" oninput="saveApiKey()" />
+      </div>
+    </div>
+
+    <div class="res-form">
+      <input id="res-company" type="text" placeholder="Enter a company name to research…" onkeydown="if(event.key==='Enter')doResearch()" />
+      <button class="btn btn-primary" id="res-btn" onclick="doResearch()">Research</button>
+    </div>
+
+    <div id="res-loading" style="display:none;text-align:center;padding:40px 0;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+        <div class="spinner"></div>
+        <span style="font-size:13px;color:var(--muted);">Researching with web search…</span>
+      </div>
+    </div>
+
+    <div id="res-error" class="err-block" style="display:none;"></div>
+
+    <div id="res-result" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:13px;color:var(--muted);">Brief for: <strong id="res-co-label"></strong></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="saveResearch()">Save result</button>
+          <button class="btn btn-primary btn-sm" onclick="pushToContacts()">+ Add to Contacts</button>
+        </div>
+      </div>
+      <div class="res-out" id="res-html"></div>
+    </div>
+
+    <div id="saved-section" style="margin-top:28px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Saved Research</div>
+      <div id="saved-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TRACKER ═══════════════════ -->
+<div id="pane-tracker" class="pane">
+  <div class="stats" id="stats-row"></div>
+
+  <div class="row">
+    <div class="col">
+      <!-- Interviews -->
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">Interviews</div><div class="card-sub">Target: 10 buildings · 8 boiler · 2 other</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openInterviewModal()">+ Add</button>
+        </div>
+        <div id="prog-bldg" class="prog-wrap"></div>
+        <div id="prog-boil" class="prog-wrap"></div>
+        <div id="prog-other" class="prog-wrap"></div>
+        <div id="interview-list" style="margin-top:6px;"></div>
+      </div>
+
+      <!-- LOIs -->
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">LOI Pipeline</div><div class="card-sub">Target: 3 signed</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openLOIModal()">+ Add</button>
+        </div>
+        <div id="loi-list"></div>
+        <div id="loi-empty" class="empty" style="padding:20px;display:none;"><div>No LOIs tracked yet</div></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <!-- Report sections -->
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">Report Sections</div><div class="card-sub">Market research report · sections 3.1 – 3.9</div></div>
+        </div>
+        <div id="sections-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ COMPETITORS ═══════════════════ -->
+<div id="pane-competitors" class="pane">
+  <div class="toolbar">
+    <div class="toolbar-r">
+      <button class="btn btn-primary" onclick="openCompModal()">+ Add Competitor</button>
+    </div>
+  </div>
+  <div class="comp-grid" id="comp-grid"></div>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Contact -->
+<div class="overlay" id="m-contact">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-contact-title">Add Contact</div>
+      <button class="modal-x" onclick="closeModal('m-contact')">×</button>
+    </div>
+    <div class="two-col">
+      <div class="fg"><label>Name *</label><input id="c-name" type="text" placeholder="Full name" /></div>
+      <div class="fg"><label>Company *</label><input id="c-co" type="text" placeholder="Company" /></div>
+    </div>
+    <div class="two-col">
+      <div class="fg"><label>Role</label><input id="c-role" type="text" placeholder="Job title" /></div>
+      <div class="fg"><label>Email</label><input id="c-email" type="email" placeholder="email@co.com" /></div>
+    </div>
+    <div class="fg">
+      <label>Relevance Score (1–5)</label>
+      <div class="score-row" id="c-score-row">
+        <button class="score-btn" onclick="setScore(1)">1</button>
+        <button class="score-btn" onclick="setScore(2)">2</button>
+        <button class="score-btn" onclick="setScore(3)">3</button>
+        <button class="score-btn" onclick="setScore(4)">4</button>
+        <button class="score-btn" onclick="setScore(5)">5</button>
+      </div>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="c-notes" placeholder="Key context, meeting notes, next steps…"></textarea></div>
+    <div class="fg">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;font-weight:500;color:var(--text);">
+        <input id="c-fu" type="checkbox" style="width:auto;" /> Flag for follow-up
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('m-contact')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+    </div>
+  </div>
+</div>
+
+<!-- Interview -->
+<div class="overlay" id="m-interview">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-iview-title">Add Interview</div>
+      <button class="modal-x" onclick="closeModal('m-interview')">×</button>
+    </div>
+    <div class="two-col">
+      <div class="fg"><label>Company *</label><input id="i-co" type="text" placeholder="Company name" /></div>
+      <div class="fg"><label>Contact Name</label><input id="i-name" type="text" placeholder="Person interviewed" /></div>
+    </div>
+    <div class="two-col">
+      <div class="fg"><label>Date</label><input id="i-date" type="date" /></div>
+      <div class="fg">
+        <label>Type</label>
+        <select id="i-type">
+          <option value="building">Commercial Building</option>
+          <option value="boiler">Boiler Company</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Status</label>
+      <select id="i-status">
+        <option value="completed">Completed</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="fg"><label>Key Findings</label><textarea id="i-notes" placeholder="What did you learn?"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('m-interview')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInterview()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOI -->
+<div class="overlay" id="m-loi">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Add Letter of Intent</div>
+      <button class="modal-x" onclick="closeModal('m-loi')">×</button>
+    </div>
+    <div class="two-col">
+      <div class="fg"><label>Company *</label><input id="l-co" type="text" placeholder="Company name" /></div>
+      <div class="fg"><label>Contact</label><input id="l-name" type="text" placeholder="Contact name" /></div>
+    </div>
+    <div class="two-col">
+      <div class="fg"><label>Date</label><input id="l-date" type="date" /></div>
+      <div class="fg">
+        <label>Status</label>
+        <select id="l-status">
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="signed">Signed</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="l-notes" placeholder="Value, next steps, context…"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('m-loi')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLOI()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Section -->
+<div class="overlay" id="m-section">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-sec-title">Update Section</div>
+      <button class="modal-x" onclick="closeModal('m-section')">×</button>
+    </div>
+    <input type="hidden" id="s-idx" />
+    <div class="fg">
+      <label>Status</label>
+      <select id="s-status">
+        <option value="notstarted">Not Started</option>
+        <option value="inprogress">In Progress</option>
+        <option value="complete">Complete</option>
+      </select>
+    </div>
+    <div class="fg"><label>Key Findings / Notes</label><textarea id="s-notes" placeholder="What have you learned for this section?"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('m-section')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSection()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Competitor -->
+<div class="overlay" id="m-comp">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-comp-title">Add Competitor</div>
+      <button class="modal-x" onclick="closeModal('m-comp')">×</button>
+    </div>
+    <div class="two-col">
+      <div class="fg"><label>Company *</label><input id="cp-name" type="text" placeholder="Company name" /></div>
+      <div class="fg">
+        <label>Threat Level</label>
+        <select id="cp-threat">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>What They Do</label><input id="cp-desc" type="text" placeholder="One-line description" /></div>
+    <div class="fg"><label>How We're Different</label><textarea id="cp-diff" placeholder="How to position Air2Energy against them…" style="min-height:60px;"></textarea></div>
+    <div class="fg"><label>Notes</label><textarea id="cp-notes" placeholder="Additional context" style="min-height:60px;"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('m-comp')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveComp()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+
+const SYSTEM_PROMPT = `You are a market research assistant for Air2Energy. Research companies and produce structured briefs to help identify sales opportunities and prepare for conversations.
+
+COMPANY: Air2Energy
+TAGLINE: Turning pollution into power
+LOCATION: Sydney, Australia
+CONTACT: andrewsmithyman@air2energy.net
+WEBSITE: air2energy.net
+BACKED BY: CSIRO ON Accelerate, UTS, EnergyLab, Ocean Impact Organisation, UTS Startups
+
+WHAT WE DO:
+Air2Energy retrofits an electrochemical system onto existing commercial gas boilers. It captures CO2 from the exhaust and converts it into electricity on-site. No rip-and-replace. No new fuel source. No downtime. The electricity feeds back into the building or local grid, offsetting energy costs and reducing emissions.
+
+FOUNDERS:
+- Andrew Smithyman, Co-Founder & CEO. Business (Finance) and Sustainability & Environment at UTS, Diploma in Innovation.
+- Kirah Godsell, Co-Founder & CEO. Advanced Science degree, Diploma in Innovation, UTS.
+
+MARKET CONTEXT — AUSTRALIA (2024–2027):
+- Victoria bans new gas connections in commercial buildings from 1 Jan 2027 — urgency driver for retrofit-while-waiting solutions
+- ASRS (Australian Sustainability Reporting Standards): mandatory Scope 1 disclosure from FY25 for large listed entities — disclosure pressure is immediate
+- LNG prices in Asia-Pacific up 300–400% over the past 10 years — gas cost pain is real and growing
+- Heat pump adoption gap: only ~20 commercial buildings converted per year vs ~5,000 that need to — massive unmet demand
+- Heat pumps are impractical above 85–150°C process heat — Air2Energy targets the hard-to-abate segment electrification cannot reach
+- Carbon pricing risk is a growing fear for large property groups with disclosed Scope 1 emissions
+
+CUSTOMER INSIGHT:
+- Economic motivators (cost savings, ROI) are the PRIMARY driver — lead with payback period and energy bill reduction, not carbon credentials
+- Fear of carbon pricing is a strong secondary driver for listed companies with disclosed gas emissions
+- "Seeking to use boiler to end of life" is a HIGH SIGNAL phrase — means they accept stranded asset risk and will not electrify soon
+- Companies with explicit gas consumption (GJ) or Scope 1 CO2 figures in sustainability reports are ideal — they have quantified the problem and are accountable for it
+- Boiler installers and service contractors (e.g. Industrial and Commercial Boiler Services) are a key trade channel — they have direct relationships with building operators
+
+IDEAL CUSTOMER:
+- Commercial building owner or property group in Australia
+- Operates gas boilers for heating (space heating, hot water, HVAC)
+- Building grade A, B or C — doesn't need to be premium
+- Faces decarbonisation pressure (ESG targets, government regulation, tenant demands)
+- Boilers have 5+ years of operational life remaining (not about to electrify)
+- Prefers retrofit solutions over rip-and-replace
+- Motivated by cost savings as much as sustainability
+
+HIGH RELEVANCE SIGNALS (score 7-10):
+- Owns or manages multiple commercial buildings
+- Has stated net zero or emissions reduction targets
+- Uses gas boilers (not fully electrified)
+- Discloses Scope 1 emissions from gas in annual or sustainability reports
+- Has a sustainability or innovation officer
+- Open to piloting new technology
+- Operates in sectors: property, hospitality, healthcare, education, government
+- Expressed concern about carbon pricing or energy cost exposure
+- Has stated "boiler end of life" or similar deferral framing
+
+LOW RELEVANCE SIGNALS (score 1-3):
+- Already fully electrified or actively mid-electrification project
+- Residential only
+- No decision-making power
+- Only interested in talking, no path to procurement
+- No gas boilers on site
+
+KNOWN WARM LEADS (already in pipeline — use for context when researching similar companies):
+- Lendlease: 100,983 GJ natural gas FY25, Scope 1 2,371t CO2 — large listed property, active ESG reporter, strong fit
+- Scentre Group (Westfield): 42 destinations, Scope 1 10,074t CO2 — explicitly stated "seeking to use boiler to end of life", fears carbon pricing, very high fit
+- Multiplex: construction and commercial property, Scope 1 367t CO2
+- Dexus and GPT Group: major commercial property owners under ESG pressure
+
+COMPETITIVE LANDSCAPE:
+- Main market alternative: heat pump electrification (rip-and-replace) — customers consider this but it is impractical for most in the near term due to cost and temperature limits
+- Carbon Clean: modular carbon capture, industrial focus, no electricity generation
+- Turboden: ORC waste heat recovery, industrial scale only
+- Emerging tech threat (5–10 year horizon): CO2-to-electricity battery patents filed by UAE University (Zn-CO2 flow battery, US patent Aug 2025), MIT Belcher Lab (Al-CO2 with ionic liquid, DARPA-funded), and China Huaneng (Li-CO2, state-backed) — none commercially deployed
+- Air2Energy's window: these alternatives are 5–10 years from commercialisation; first-mover advantage is critical
+
+KEY QUESTIONS TO ASK:
+1.1 - Do they operate commercial buildings with gas boilers?
+1.2 - What is their current approach to decarbonisation?
+1.3 - Are they in a hard-to-abate sector (can't easily electrify)?
+3.1 - What is their overall energy setup?
+3.2 - What boiler systems do they use and from which companies?
+3.3 - What sustainability or energy efficiency initiatives are they running?
+3.4 - What regulations or compliance pressures are they facing?
+3.5 - Are they open to innovation or new technology pilots?
+3.6 - What are their biggest pain points around energy and emissions?
+3.7 - What would make them say yes to a pilot?
+3.8 - What would make them say no?
+3.9 - Where do they sit in the market — are they a leader or follower on sustainability?
+
+KEY OBJECTIONS AND RESPONSES:
+- "We're planning to electrify" → Our system works until end of boiler life, delivering ROI in the meantime. Most buildings won't electrify for 5–15 years.
+- "We need proven technology" → Active pilot at UTS rooftop, CSIRO validated
+- "What's the ROI?" → Target 5-year payback, electricity cost offset from day one. With LNG up 300–400% in 10 years, the economics only improve.
+- "We can't disrupt operations" → Zero downtime, bolt-on, no changes to existing boiler
+- "Too early stage" → Backed by CSIRO, UTS, EnergyLab — not a garage startup
+- "We're covered by solar/battery" → Solar doesn't reduce boiler emissions. Air2Energy targets your remaining Scope 1 gas problem directly.
+
+HOW WE ARE DIFFERENT:
+- Only solution that retrofits directly onto existing gas boilers
+- Captures CO2 AND generates electricity (dual benefit)
+- No new infrastructure required
+- Designed for commercial buildings specifically
+- Australian-owned (advantage for government and commercial contracts)
+- Backed by CSIRO — technical credibility
+- Works during the transition period while electrification is impractical or cost-prohibitive
+
+When researching a company, structure your response with EXACTLY these headings (use ## prefix):
+
+## Company Overview
+2-3 sentences on what they do, size, and Australian market position.
+
+## Gas Boiler Usage
+Do they likely operate commercial gas boilers? Cite any evidence found.
+
+## Sustainability Profile
+Stated sustainability commitments, net zero targets, ESG reporting, or lack thereof. Look for disclosed Scope 1 gas figures.
+
+## Key Contacts
+Specific names and roles to reach out to (use web search to find current people). At minimum suggest the right role types.
+
+## Fit Score: X/10
+Score from 1–10 based on the ideal customer profile above. One sentence of justification.
+
+## Talking Points
+1. [Specific to this company — reference their actual situation]
+2. [Connect to their sustainability goals or pressure]
+3. [Link to a pain point they are likely facing]
+
+## Suggested Questions
+List the 3–5 most relevant questions from the framework above for this specific company.
+
+## Objections to Prepare For
+1–2 likely objections from this company with the recommended Air2Energy response.
+
+Use web search to find current, accurate information. Prioritise Australian operations.`;
+
+const SECTIONS = [
+  { id:'3.1', title:'Overall Energy Setup',        q:'What is their overall energy setup?' },
+  { id:'3.2', title:'Boiler Systems',              q:'What boiler systems do they use and from which companies?' },
+  { id:'3.3', title:'Sustainability Initiatives',  q:'What sustainability or energy efficiency initiatives are they running?' },
+  { id:'3.4', title:'Regulatory Pressures',        q:'What regulations or compliance pressures are they facing?' },
+  { id:'3.5', title:'Openness to Innovation',      q:'Are they open to innovation or new technology pilots?' },
+  { id:'3.6', title:'Pain Points',                 q:'What are their biggest pain points around energy and emissions?' },
+  { id:'3.7', title:'Decision Criteria — Yes',     q:'What would make them say yes to a pilot?' },
+  { id:'3.8', title:'Decision Criteria — No',      q:'What would make them say no?' },
+  { id:'3.9', title:'Market Positioning',          q:'Leader or follower on sustainability?' }
+];
+
+const DEFAULT_COMPS = [
+  { id:'comp01', name:'Heat pump electrification',  desc:'Full boiler replacement path — main market alternative',                           threat:'high',   diff:'Requires rip-and-replace, high upfront cost. Only ~20 commercial buildings converted/year vs ~5,000 that need to. Impractical above 85–150°C. Air2Energy generates ROI while customers wait.',         notes:'Main alternative customers consider. Frame Air2Energy as complementary to long-term electrification plans.' },
+  { id:'comp02', name:'UAE University (D4)',         desc:'Zn-CO2 zero-gap flow battery — US patent granted Aug 2025',                        threat:'high',   diff:'Direct CO2-to-electricity technology competitor. Patent granted but not commercialised. 5–10 year window before market entry. Air2Energy must establish market position now.',               notes:'Highest long-term tech threat. Monitor for commercialisation partners or licensing activity.' },
+  { id:'comp03', name:'MIT Belcher Lab (D2)',        desc:'Al-CO2 battery with ionic liquid electrolyte — DARPA-funded',                      threat:'medium', diff:'DARPA-funded academic research. Al-CO2 chemistry, different to Air2Energy approach. Not yet commercialised. Strong institutional backing means it could accelerate.',                          notes:'Well-funded. Watch for spin-out or licensing announcements.' },
+  { id:'comp04', name:'China Huaneng (D1)',          desc:'Li-CO2 with CCS — state-backed Chinese utility, large-scale',                      threat:'medium', diff:'State-backed, large-scale CCS focus. Not designed for building-level retrofit. Geographic and scale mismatch with Air2Energy market. No near-term Australian commercial threat.',           notes:'Not a near-term threat in Australia but signals the technology is validated at scale.' },
+  { id:'comp05', name:'D5 — pH-swing flow cell',    desc:'pH-swing CO2 electrochemical cell — US patent granted, assignee unknown',           threat:'medium', diff:'US patent granted. Same capture+convert concept as Air2Energy. Assignee not identified — could be acquired or licensed by a larger player. Different chemistry.',                               notes:'Monitor patent assignee. Could become relevant if acquired by a major energy company.' },
+  { id:'comp06', name:'Carbon Clean',               desc:'Modular carbon capture, industrial focus',                                          threat:'medium', diff:'Solvent-based capture, more complex installation, industrial focus. No electricity generation. Not suited to building retrofit scale.',                                                         notes:'' },
+  { id:'comp07', name:'Turboden',                   desc:'ORC waste heat recovery, industrial scale',                                         threat:'low',    diff:'Industrial-scale only, not designed for commercial buildings. Captures waste heat not CO2. No CO2 reduction benefit.',                                                                     notes:'' },
+  { id:'comp08', name:'Bosch (D3)',                 desc:'Li-O2-CO2 battery — research deprioritised, Bosch pivoted to hydrogen',             threat:'low',    diff:'Bosch has pivoted to hydrogen strategy. Li-O2-CO2 research abandoned. Was a potential HIGH threat if commercialised; now LOW.',                                                              notes:'Previously high concern. Hydrogen pivot removed near-term risk.' },
+  { id:'comp09', name:'Solar + battery',            desc:'Renewable generation + storage',                                                    threat:'low',    diff:"Addresses electricity generation, not boiler emissions. Doesn't reduce Scope 1 gas. Often complementary — customers may have both.",                                                           notes:'' },
+];
+
+const DEFAULT_CONTACTS = [
+  { id:'seed01', name:'Lendlease',              co:'Lendlease',                              role:'Property Group',                  email:'', score:9, notes:'100,983 GJ natural gas FY25. Scope 1: 2,371t CO2. Large listed property company, active ESG reporter. Strong fit — quantified gas problem, under ASRS disclosure obligations.', fu:true,  ts:1700000001000 },
+  { id:'seed02', name:'Scentre Group',          co:'Scentre Group (Westfield)',               role:'Property Group',                  email:'', score:9, notes:'42 destinations. Scope 1: 10,074t CO2. Explicitly stated "seeking to use boiler to end of life". Fears carbon pricing exposure. Very high fit — already framing the problem Air2Energy solves.', fu:true,  ts:1700000002000 },
+  { id:'seed03', name:'Dexus',                  co:'Dexus',                                  role:'Commercial Property',             email:'', score:8, notes:'Major ASX-listed commercial property owner under ESG pressure. Large office and industrial portfolio. Active sustainability reporter.', fu:true,  ts:1700000003000 },
+  { id:'seed04', name:'GPT Group',              co:'GPT Group',                              role:'Commercial Property',             email:'', score:8, notes:'Major ASX-listed commercial property owner under ESG pressure. Retail, office, logistics portfolio. Active sustainability reporter.', fu:true,  ts:1700000004000 },
+  { id:'seed05', name:'Multiplex',              co:'Multiplex',                              role:'Construction & Commercial Property', email:'', score:7, notes:'Scope 1: 367t CO2. Construction and commercial property. Potential fit for building-owner relationships and new-build retrofit discussions.', fu:false, ts:1700000005000 },
+  { id:'seed06', name:'Stowe Australia',        co:'Stowe Australia',                        role:'Building Services Contractor',    email:'', score:6, notes:'Contractor aligning sustainability with client values. Potential trade channel partner — works directly with commercial building operators.', fu:false, ts:1700000006000 },
+  { id:'seed07', name:'Luke Dillon',            co:'Industrial and Commercial Boiler Services', role:'Manager / Owner',              email:'', score:8, notes:'Key trade channel. Boiler installer with direct relationships with commercial building operators. High-value intro pathway to end customers. From market research.', fu:true,  ts:1700000007000 },
+  { id:'seed08', name:'Connor Mitchell',        co:'Boiler and Combustion Services',         role:'Boiler Installer',                email:'', score:7, notes:'Boiler installer. Potential trade channel partner — direct access to end customers with gas boilers. From market research.', fu:false, ts:1700000008000 },
+  { id:'seed09', name:'Jason Yuen Khiong Chao', co:'Unknown',                               role:'Commercial Building Stakeholder', email:'', score:5, notes:'Identified in market research as commercial building stakeholder. Role and company to be confirmed.', fu:false, ts:1700000009000 },
+  { id:'seed10', name:'Elizabeth Cuan',         co:'Unknown',                               role:'Commercial Building Stakeholder', email:'', score:5, notes:'Identified in market research as commercial building stakeholder. Role and company to be confirmed.', fu:false, ts:1700000010000 },
+  { id:'seed11', name:'Francisco Carbajal',     co:'Unknown',                               role:'Architectural Design Consultant', email:'', score:5, notes:'Identified in market research as architectural design consultant. Potential referral channel for new commercial builds.', fu:false, ts:1700000011000 },
+  { id:'seed12', name:'Llew Reilly',            co:'Arathem',                               role:'Employee',                        email:'', score:4, notes:'Arathem startup employee. Identified in market research. Startup context — may have useful network connections.', fu:false, ts:1700000012000 },
+];
+
+// ══════════════════════════════════════════════
+//  STATE & STORAGE
+// ══════════════════════════════════════════════
+
+function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+let contacts    = load('a2e_contacts', DEFAULT_CONTACTS);
+let interviews  = load('a2e_interviews', []);
+let lois        = load('a2e_lois', []);
+let sections    = load('a2e_sections', SECTIONS.map(s => ({ ...s, status:'notstarted', notes:'' })));
+let competitors = load('a2e_competitors', DEFAULT_COMPS);
+let research    = load('a2e_research', []);
+
+let editCid = null;
+let editCompId = null;
+let cScore = 3;
+let curResearchCo = '';
+
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('pane-' + btn.dataset.tab).classList.add('on');
+    if (btn.dataset.tab === 'tracker') renderTracker();
+    if (btn.dataset.tab === 'research') renderSaved();
+    if (btn.dataset.tab === 'competitors') renderComps();
+  });
+});
+
+// ══════════════════════════════════════════════
+//  CONTACTS
+// ══════════════════════════════════════════════
+
+function renderContacts() {
+  const q    = (document.getElementById('cs-search').value || '').toLowerCase();
+  const sc   = document.getElementById('cs-score').value;
+  const fu   = document.getElementById('cs-fu').value;
+  const body = document.getElementById('contacts-body');
+  const emp  = document.getElementById('contacts-empty');
+
+  let rows = contacts.filter(c => {
+    if (q && !`${c.name} ${c.co} ${c.role || ''} ${c.notes || ''}`.toLowerCase().includes(q)) return false;
+    if (sc && String(c.score) !== sc) return false;
+    if (fu && !c.fu) return false;
+    return true;
+  }).sort((a,b) => (b.fu?1:0)-(a.fu?1:0) || b.score-a.score);
+
+  if (!rows.length) { body.innerHTML=''; emp.style.display='block'; return; }
+  emp.style.display = 'none';
+
+  body.innerHTML = rows.map(c => {
+    const init = (c.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const dots = [1,2,3,4,5].map(i => `<span class="dot ${i<=c.score?'on':''}${i<=c.score&&c.score>=4?' hi':''}"></span>`).join('');
+    return `<tr>
+      <td><div class="av">${esc(init)}</div></td>
+      <td>
+        <div style="font-weight:500;">${esc(c.name)}</div>
+        ${c.email?`<div style="font-size:11px;color:var(--muted);">${esc(c.email)}</div>`:''}
+      </td>
+      <td>${esc(c.co)}</td>
+      <td style="color:var(--muted);">${esc(c.role||'—')}</td>
+      <td><div class="dots">${dots}</div></td>
+      <td style="text-align:center;">
+        <button class="fu${c.fu?' on':''}" onclick="toggleFU('${c.id}')">${c.fu?'✓':''}</button>
+      </td>
+      <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);">${esc(c.notes||'—')}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openContactModal('${c.id}')" title="Edit">✎</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delContact('${c.id}')" title="Delete">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openContactModal(id) {
+  editCid = id || null;
+  document.getElementById('m-contact-title').textContent = id ? 'Edit Contact' : 'Add Contact';
+  const c = id ? contacts.find(x => x.id===id) : null;
+  document.getElementById('c-name').value  = c?.name  || '';
+  document.getElementById('c-co').value    = c?.co    || '';
+  document.getElementById('c-role').value  = c?.role  || '';
+  document.getElementById('c-email').value = c?.email || '';
+  document.getElementById('c-notes').value = c?.notes || '';
+  document.getElementById('c-fu').checked  = c?.fu    || false;
+  setScore(c?.score ?? 3);
+  openModal('m-contact');
+}
+
+function setScore(n) {
+  cScore = n;
+  document.querySelectorAll('#c-score-row .score-btn').forEach((b,i) => b.classList.toggle('on', i+1===n));
+}
+
+function saveContact() {
+  const name = document.getElementById('c-name').value.trim();
+  const co   = document.getElementById('c-co').value.trim();
+  if (!name || !co) { toast('Name and company required'); return; }
+  const obj = {
+    id: editCid || uid(),
+    name, co,
+    role:  document.getElementById('c-role').value.trim(),
+    email: document.getElementById('c-email').value.trim(),
+    score: cScore,
+    notes: document.getElementById('c-notes').value.trim(),
+    fu:    document.getElementById('c-fu').checked,
+    ts:    Date.now()
+  };
+  contacts = editCid ? contacts.map(c => c.id===editCid?obj:c) : [obj, ...contacts];
+  save('a2e_contacts', contacts);
+  closeModal('m-contact');
+  renderContacts();
+  toast(editCid ? 'Contact updated' : 'Contact added');
+}
+
+function delContact(id) {
+  if (!confirm('Delete this contact?')) return;
+  contacts = contacts.filter(c => c.id !== id);
+  save('a2e_contacts', contacts);
+  renderContacts();
+  toast('Deleted');
+}
+
+function toggleFU(id) {
+  contacts = contacts.map(c => c.id===id ? {...c, fu:!c.fu} : c);
+  save('a2e_contacts', contacts);
+  renderContacts();
+}
+
+// ══════════════════════════════════════════════
+//  RESEARCH AGENT
+// ══════════════════════════════════════════════
+
+function saveApiKey() { localStorage.setItem('a2e_key', document.getElementById('api-key').value); }
+function getApiKey()  { return localStorage.getItem('a2e_key') || ''; }
+
+async function doResearch() {
+  const co = document.getElementById('res-company').value.trim();
+  if (!co) return;
+  const key = getApiKey();
+  if (!key) { showErr('Enter your Anthropic API key above.'); return; }
+
+  curResearchCo = co;
+  document.getElementById('res-result').style.display  = 'none';
+  document.getElementById('res-error').style.display   = 'none';
+  document.getElementById('res-loading').style.display = 'block';
+  document.getElementById('res-btn').disabled = true;
+
+  try {
+    const text = await callAPI(co, key);
+    document.getElementById('res-html').innerHTML = md2html(text);
+    document.getElementById('res-co-label').textContent = co;
+    document.getElementById('res-result').style.display = 'block';
+  } catch(e) {
+    showErr(e.message || 'Research failed. Check your API key and try again.');
+  } finally {
+    document.getElementById('res-loading').style.display = 'none';
+    document.getElementById('res-btn').disabled = false;
+  }
+}
+
+async function callAPI(company, key) {
+  const headers = {
+    'x-api-key': key,
+    'anthropic-version': '2023-06-01',
+    'content-type': 'application/json',
+    'anthropic-beta': 'web-search-2025-03-05'
+  };
+  const tools = [{ type:'web_search_20250305', name:'web_search', max_uses:5 }];
+  const baseBody = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4000,
+    system: SYSTEM_PROMPT,
+    tools
+  };
+
+  let messages = [{ role:'user', content:`Research this company for Air2Energy's sales pipeline and produce a structured brief: ${company}` }];
+
+  for (let i = 0; i < 12; i++) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers,
+      body: JSON.stringify({ ...baseBody, messages })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(()=>({}));
+      throw new Error(e.error?.message || `API error ${r.status}`);
+    }
+    const data = await r.json();
+
+    if (data.stop_reason === 'end_turn') {
+      return data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    }
+    if (data.stop_reason === 'tool_use') {
+      messages.push({ role:'assistant', content: data.content });
+      const results = data.content
+        .filter(b => b.type === 'tool_use')
+        .map(b => ({ type:'tool_result', tool_use_id:b.id, content: b.input?.results ? JSON.stringify(b.input.results) : '' }));
+      messages.push({ role:'user', content: results });
+      continue;
+    }
+    // Fallback — extract any text
+    const txt = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    if (txt) return txt;
+    throw new Error('Unexpected API response');
+  }
+  throw new Error('Too many tool calls — please try again.');
+}
+
+function showErr(msg) {
+  const el = document.getElementById('res-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function saveResearch() {
+  const html = document.getElementById('res-html').innerHTML;
+  if (!html || !curResearchCo) return;
+  const idx = research.findIndex(r => r.co === curResearchCo);
+  const entry = { id:uid(), co:curResearchCo, html, date:new Date().toISOString() };
+  if (idx >= 0) research[idx] = entry; else research.unshift(entry);
+  save('a2e_research', research);
+  renderSaved();
+  toast('Research saved');
+}
+
+function pushToContacts() {
+  document.getElementById('c-co').value = curResearchCo;
+  // switch to contacts tab
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.querySelector('[data-tab="contacts"]').classList.add('on');
+  document.getElementById('pane-contacts').classList.add('on');
+  openContactModal();
+}
+
+function renderSaved() {
+  const el = document.getElementById('saved-list');
+  if (!research.length) { el.innerHTML='<p style="font-size:13px;color:var(--muted);">No saved research yet.</p>'; return; }
+  el.innerHTML = research.map(r => `
+    <div class="saved-r" onclick="loadSaved('${r.id}')">
+      <div class="saved-rco">${esc(r.co)}</div>
+      <div class="saved-rd">${fmtDate(r.date)}</div>
+    </div>`).join('');
+}
+
+function loadSaved(id) {
+  const r = research.find(x=>x.id===id);
+  if (!r) return;
+  curResearchCo = r.co;
+  document.getElementById('res-company').value = r.co;
+  document.getElementById('res-co-label').textContent = r.co;
+  document.getElementById('res-html').innerHTML = r.html;
+  document.getElementById('res-result').style.display = 'block';
+  document.getElementById('res-error').style.display = 'none';
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════════
+//  TRACKER
+// ══════════════════════════════════════════════
+
+function renderTracker() {
+  const bldg  = interviews.filter(i=>i.type==='building'&&i.status==='completed').length;
+  const boil  = interviews.filter(i=>i.type==='boiler'  &&i.status==='completed').length;
+  const other = interviews.filter(i=>i.type==='other'   &&i.status==='completed').length;
+  const total = bldg+boil+other;
+  const signed = lois.filter(l=>l.status==='signed').length;
+  const secsDone = sections.filter(s=>s.status==='complete').length;
+
+  // Stats
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="stat-val">${total}</div><div class="stat-lbl">Interviews Done</div></div>
+    <div class="stat"><div class="stat-val">${bldg}/10</div><div class="stat-lbl">Buildings</div></div>
+    <div class="stat"><div class="stat-val">${boil}/8</div><div class="stat-lbl">Boiler Cos</div></div>
+    <div class="stat"><div class="stat-val">${other}/2</div><div class="stat-lbl">Other</div></div>
+    <div class="stat"><div class="stat-val">${signed}/3</div><div class="stat-lbl">LOIs Signed</div></div>`;
+
+  // Progress bars
+  progBar('prog-bldg',  'Commercial buildings', bldg,  10);
+  progBar('prog-boil',  'Boiler companies',     boil,  8);
+  progBar('prog-other', 'Other',                other, 2);
+
+  // Interviews
+  const iEl = document.getElementById('interview-list');
+  if (!interviews.length) { iEl.innerHTML='<p style="font-size:12px;color:var(--muted);padding:6px 0;">No interviews yet.</p>'; }
+  else iEl.innerHTML = interviews.slice().reverse().map(i => {
+    const tc = {building:'t-bldg',boiler:'t-boil',other:'t-other'}[i.type];
+    const tl = {building:'Building',boiler:'Boiler',other:'Other'}[i.type];
+    const sb = {completed:'<span class="badge b-teal">Done</span>',scheduled:'<span class="badge b-amber">Scheduled</span>',cancelled:'<span class="badge b-gray">Cancelled</span>'}[i.status]||'';
+    return `<div class="list-row">
+      <div class="list-main">
+        <div class="list-name">${esc(i.co)} <span class="ttag ${tc}">${tl}</span> ${sb}</div>
+        ${i.iname?`<div class="list-meta">${esc(i.iname)}</div>`:''}
+        ${i.date?`<div class="list-meta">${fmtDate(i.date)}</div>`:''}
+        ${i.notes?`<div class="list-meta" style="margin-top:3px;">${esc(i.notes)}</div>`:''}
+      </div>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="delInterview('${i.id}')">✕</button>
+    </div>`;
+  }).join('');
+
+  // LOIs
+  const lEl = document.getElementById('loi-list');
+  const lEmp = document.getElementById('loi-empty');
+  if (!lois.length) { lEl.innerHTML=''; lEmp.style.display='block'; }
+  else {
+    lEmp.style.display='none';
+    lEl.innerHTML = lois.map(l => {
+      const sb = {draft:'<span class="badge b-amber">Draft</span>',sent:'<span class="badge b-blue">Sent</span>',signed:'<span class="badge b-teal">Signed</span>'}[l.status]||'';
+      return `<div class="list-row">
+        <div class="list-main">
+          <div class="list-name">${esc(l.co)} ${sb}</div>
+          ${l.lname?`<div class="list-meta">${esc(l.lname)}</div>`:''}
+          ${l.date?`<div class="list-meta">${fmtDate(l.date)}</div>`:''}
+          ${l.notes?`<div class="list-meta" style="margin-top:2px;">${esc(l.notes)}</div>`:''}
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="cycleLOI('${l.id}')" title="Advance status">↻</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delLOI('${l.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Sections
+  const sEl = document.getElementById('sections-list');
+  sEl.innerHTML = sections.map((s,idx) => {
+    const bc = {notstarted:'b-gray',inprogress:'b-green',complete:'b-teal'}[s.status];
+    const bl = {notstarted:'Not started',inprogress:'In progress',complete:'Complete'}[s.status];
+    return `<div class="sec-item" onclick="openSecModal(${idx})">
+      <div class="sec-num">${s.id}</div>
+      <div class="sec-text">
+        <div class="sec-title">${s.title}</div>
+        ${s.notes?`<div class="sec-notes">${esc(s.notes)}</div>`:''}
+      </div>
+      <span class="badge ${bc}">${bl}</span>
+    </div>`;
+  }).join('');
+}
+
+function progBar(elId, label, val, max) {
+  document.getElementById(elId).innerHTML = `
+    <div class="prog-top"><span>${label}</span><span style="font-family:monospace;">${val}/${max}</span></div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,(val/max)*100)}%"></div></div>`;
+}
+
+function openInterviewModal() {
+  document.getElementById('i-co').value = '';
+  document.getElementById('i-name').value = '';
+  document.getElementById('i-date').value = today();
+  document.getElementById('i-type').value = 'building';
+  document.getElementById('i-status').value = 'completed';
+  document.getElementById('i-notes').value = '';
+  openModal('m-interview');
+}
+
+function saveInterview() {
+  const co = document.getElementById('i-co').value.trim();
+  if (!co) { toast('Company required'); return; }
+  interviews.push({ id:uid(), co, iname:document.getElementById('i-name').value.trim(), date:document.getElementById('i-date').value, type:document.getElementById('i-type').value, status:document.getElementById('i-status').value, notes:document.getElementById('i-notes').value.trim() });
+  save('a2e_interviews', interviews);
+  closeModal('m-interview');
+  renderTracker();
+  toast('Interview added');
+}
+
+function delInterview(id) {
+  if (!confirm('Delete this interview?')) return;
+  interviews = interviews.filter(i=>i.id!==id);
+  save('a2e_interviews', interviews);
+  renderTracker();
+}
+
+function openLOIModal() {
+  document.getElementById('l-co').value = '';
+  document.getElementById('l-name').value = '';
+  document.getElementById('l-date').value = today();
+  document.getElementById('l-status').value = 'draft';
+  document.getElementById('l-notes').value = '';
+  openModal('m-loi');
+}
+
+function saveLOI() {
+  const co = document.getElementById('l-co').value.trim();
+  if (!co) { toast('Company required'); return; }
+  lois.push({ id:uid(), co, lname:document.getElementById('l-name').value.trim(), date:document.getElementById('l-date').value, status:document.getElementById('l-status').value, notes:document.getElementById('l-notes').value.trim() });
+  save('a2e_lois', lois);
+  closeModal('m-loi');
+  renderTracker();
+  toast('LOI added');
+}
+
+function cycleLOI(id) {
+  const order = ['draft','sent','signed'];
+  lois = lois.map(l => l.id===id ? {...l, status:order[(order.indexOf(l.status)+1)%3]} : l);
+  save('a2e_lois', lois);
+  renderTracker();
+}
+
+function delLOI(id) {
+  if (!confirm('Delete this LOI?')) return;
+  lois = lois.filter(l=>l.id!==id);
+  save('a2e_lois', lois);
+  renderTracker();
+}
+
+function openSecModal(idx) {
+  const s = sections[idx];
+  document.getElementById('m-sec-title').textContent = `${s.id} — ${s.title}`;
+  document.getElementById('s-idx').value = idx;
+  document.getElementById('s-status').value = s.status;
+  document.getElementById('s-notes').value = s.notes || '';
+  openModal('m-section');
+}
+
+function saveSection() {
+  const idx = +document.getElementById('s-idx').value;
+  sections[idx] = { ...sections[idx], status:document.getElementById('s-status').value, notes:document.getElementById('s-notes').value.trim() };
+  save('a2e_sections', sections);
+  closeModal('m-section');
+  renderTracker();
+  toast('Section updated');
+}
+
+// ══════════════════════════════════════════════
+//  COMPETITORS
+// ══════════════════════════════════════════════
+
+function renderComps() {
+  const grid = document.getElementById('comp-grid');
+  grid.innerHTML = competitors.map(c => {
+    const tc = {low:'th-low',medium:'th-med',high:'th-high'}[c.threat];
+    const tl = {low:'Low threat',medium:'Medium threat',high:'High threat'}[c.threat];
+    return `<div class="comp-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+        <div class="comp-name">${esc(c.name)}</div>
+        <span class="threat ${tc}">${tl}</span>
+      </div>
+      <div class="comp-desc">${esc(c.desc)}</div>
+      ${c.diff?`<div class="comp-diff"><strong>Our diff:</strong> ${esc(c.diff)}</div>`:''}
+      ${c.notes?`<div style="font-size:12px;color:var(--muted);">${esc(c.notes)}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:12px;">
+        <button class="btn btn-outline btn-sm" onclick="openCompModal('${c.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delComp('${c.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openCompModal(id) {
+  editCompId = id || null;
+  document.getElementById('m-comp-title').textContent = id ? 'Edit Competitor' : 'Add Competitor';
+  const c = id ? competitors.find(x=>x.id===id) : null;
+  document.getElementById('cp-name').value   = c?.name   || '';
+  document.getElementById('cp-threat').value = c?.threat || 'medium';
+  document.getElementById('cp-desc').value   = c?.desc   || '';
+  document.getElementById('cp-diff').value   = c?.diff   || '';
+  document.getElementById('cp-notes').value  = c?.notes  || '';
+  openModal('m-comp');
+}
+
+function saveComp() {
+  const name = document.getElementById('cp-name').value.trim();
+  if (!name) { toast('Company name required'); return; }
+  const obj = { id:editCompId||uid(), name, threat:document.getElementById('cp-threat').value, desc:document.getElementById('cp-desc').value.trim(), diff:document.getElementById('cp-diff').value.trim(), notes:document.getElementById('cp-notes').value.trim() };
+  competitors = editCompId ? competitors.map(c=>c.id===editCompId?obj:c) : [...competitors, obj];
+  save('a2e_competitors', competitors);
+  closeModal('m-comp');
+  renderComps();
+  toast(editCompId ? 'Updated' : 'Competitor added');
+}
+
+function delComp(id) {
+  if (!confirm('Delete this competitor?')) return;
+  competitors = competitors.filter(c=>c.id!==id);
+  save('a2e_competitors', competitors);
+  renderComps();
+}
+
+// ══════════════════════════════════════════════
+//  MODALS
+// ══════════════════════════════════════════════
+
+function openModal(id) { document.getElementById(id).classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target===o) o.classList.remove('on'); });
+});
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function today() { return new Date().toISOString().slice(0,10); }
+function fmtDate(s) { try { return new Date(s).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}); } catch { return s; } }
+function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2400); }
+
+function md2html(md) {
+  const e = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => e(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+  const lines = md.split('\n');
+  let html = '', inUL = false, inOL = false;
+  const closeL = () => { if(inUL){html+='</ul>';inUL=false;} if(inOL){html+='</ol>';inOL=false;} };
+  for (const raw of lines) {
+    const ln = raw.trimEnd();
+    if (/^## /.test(ln))      { closeL(); html+=`<h2>${inline(ln.slice(3))}</h2>`; }
+    else if (/^### /.test(ln)){ closeL(); html+=`<h3 style="font-size:13px;font-weight:600;margin:10px 0 4px;">${inline(ln.slice(4))}</h3>`; }
+    else if (/^\d+\. /.test(ln)) { if(inUL){html+='</ul>';inUL=false;} if(!inOL){html+='<ol>';inOL=true;} html+=`<li>${inline(ln.replace(/^\d+\. /,''))}</li>`; }
+    else if (/^[-*•] /.test(ln)){ if(inOL){html+='</ol>';inOL=false;} if(!inUL){html+='<ul>';inUL=true;} html+=`<li>${inline(ln.replace(/^[-*•] /,''))}</li>`; }
+    else if (!ln.trim())      { closeL(); html+='<br>'; }
+    else                      { closeL(); html+=`<p>${inline(ln)}</p>`; }
+  }
+  closeL();
+  return html;
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+
+document.getElementById('api-key').value = getApiKey();
+renderContacts();
+renderComps();
+renderSaved();
+</script>
+</body>
+</html>
