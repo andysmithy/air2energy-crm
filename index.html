@@ -284,8 +284,7 @@ label { display:block; font-size:11px; font-weight:600; color:var(--muted); marg
   <div style="max-width:820px;">
     <div class="api-row">
       <div class="fg">
-        <label>Anthropic API Key</label>
-        <input id="api-key" type="password" placeholder="sk-ant-…" oninput="saveApiKey()" />
+        <label style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">API key is configured in <code style="background:var(--cream);padding:1px 5px;border-radius:4px;font-size:12px;">.env</code> on the local proxy server — see README.</label>
       </div>
     </div>
 
@@ -882,14 +881,9 @@ function toggleFU(id) {
 //  RESEARCH AGENT
 // ══════════════════════════════════════════════
 
-function saveApiKey() { localStorage.setItem('a2e_key', document.getElementById('api-key').value); }
-function getApiKey()  { return localStorage.getItem('a2e_key') || ''; }
-
 async function doResearch() {
   const co = document.getElementById('res-company').value.trim();
   if (!co) return;
-  const key = getApiKey();
-  if (!key) { showErr('Enter your Anthropic API key above.'); return; }
 
   curResearchCo = co;
   document.getElementById('res-result').style.display  = 'none';
@@ -898,7 +892,7 @@ async function doResearch() {
   document.getElementById('res-btn').disabled = true;
 
   try {
-    const text = await callAPI(co, key);
+    const text = await callAPI(co);
     document.getElementById('res-html').innerHTML = md2html(text);
     document.getElementById('res-co-label').textContent = co;
     document.getElementById('res-result').style.display = 'block';
@@ -910,14 +904,8 @@ async function doResearch() {
   }
 }
 
-async function callAPI(company, key) {
-  const headers = {
-    'x-api-key': key,
-    'anthropic-version': '2023-06-01',
-    'content-type': 'application/json',
-    'anthropic-beta': 'web-search-2025-03-05',
-    'anthropic-dangerous-allow-browser': 'true'
-  };
+async function callAPI(company) {
+  const headers = { 'content-type': 'application/json' };
   const tools = [{ type:'web_search_20250305', name:'web_search', max_uses:5 }];
   const baseBody = {
     model: 'claude-sonnet-4-20250514',
@@ -929,7 +917,7 @@ async function callAPI(company, key) {
   let messages = [{ role:'user', content:`Research this company for Air2Energy's sales pipeline and produce a structured brief: ${company}` }];
 
   for (let i = 0; i < 12; i++) {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('http://localhost:3000/v1/messages', {
       method:'POST', headers,
       body: JSON.stringify({ ...baseBody, messages })
     });
@@ -1433,7 +1421,6 @@ function confirmImport() {
 //  INIT
 // ══════════════════════════════════════════════
 
-document.getElementById('api-key').value = getApiKey();
 renderContacts();
 renderComps();
 renderSaved();

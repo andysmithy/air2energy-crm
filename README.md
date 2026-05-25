@@ -2,28 +2,61 @@
 
 Single-file sales CRM for Air2Energy — contacts, competitor intel, and an AI research agent powered by Claude.
 
-## Running locally
+## Setup
 
-The research agent calls the Anthropic API directly from the browser. This requires serving the file over HTTP (not opening it as a `file://` URL).
-
-**1. Start a local server**
+**1. Install dependencies**
 
 ```bash
 cd ~/air2energy-tools
+npm install
+```
+
+**2. Add your Anthropic API key**
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and replace `sk-ant-your-key-here` with your real key:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**3. Start the proxy server**
+
+```bash
+node server.js
+```
+
+The proxy runs on `http://localhost:3000` and forwards requests to the Anthropic API server-side, so your API key is never exposed in the browser.
+
+**4. Open the app**
+
+In a second terminal:
+
+```bash
 python3 -m http.server 8000
 ```
 
-**2. Open in your browser**
+Then open `http://localhost:8000` in your browser.
+
+## How it works
 
 ```
-http://localhost:8000
+Browser (localhost:8000)
+  └─ POST /v1/messages
+       └─ Proxy (localhost:3000)
+            └─ adds x-api-key from .env
+                 └─ Anthropic API
 ```
-
-**3. Add your Anthropic API key**
-
-Go to the **Research** tab and paste your `sk-ant-…` key. It is saved in your browser's localStorage and never leaves your machine.
 
 ## Files
 
-- `index.html` — the entire app (HTML + CSS + JS, no build step)
-- `context/` — source documents used to train the research agent system prompt
+| File | Description |
+|------|-------------|
+| `index.html` | The entire app (HTML + CSS + JS, no build step) |
+| `server.js` | Node.js proxy that holds the API key server-side |
+| `.env` | Your API key — never committed to git |
+| `.env.example` | Template for `.env` |
+| `context/` | Source documents used to train the research agent system prompt |
