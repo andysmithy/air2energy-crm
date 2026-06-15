@@ -128,7 +128,9 @@ class Air2EnergyMarketAgent:
                 }]
             )
 
-            return {"research_content": response.content}
+            # Convert TextBlock objects to string for JSON serialization
+            content = str(response.content[0].text) if response.content else "No research data available"
+            return {"research_content": content}
 
         except Exception as e:
             print(f"Error during research: {e}")
