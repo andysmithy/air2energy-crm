@@ -33,60 +33,98 @@ class Air2EnergyMarketAgent:
         self.context = self._load_air2energy_context()
 
     def _load_air2energy_context(self) -> str:
-        """Load context files in priority order: AA (primary) > BB (secondary) > CC (background).
-
-        AA docs: real customer conversations and internal documents — ground truth.
-        BB docs: reviewed external research — secondary, supports AA.
-        CC docs: basic external research — background only.
-        When sources conflict, AA always wins over BB, BB over CC.
-        """
+        """Read context files (AA > BB > CC priority), truncate to fit token budget, then summarise
+        into a compact ≤2000-word system prompt via a single Claude call."""
         base = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'context', 'Market reserch')
 
         source_config = [
-            (
-                'AA docs',
-                'AA — PRIMARY SOURCE | Real customer conversations & internal documents | GROUND TRUTH — highest authority',
-            ),
-            (
-                'BB docs',
-                'BB — SECONDARY SOURCE | Reviewed external research | Treat as supporting evidence; defer to AA on any conflict',
-            ),
-            (
-                'CC docs',
-                'CC — BACKGROUND SOURCE | Basic external research | Background context only; defer to AA and BB on any conflict',
-            ),
+            ('AA docs', 'AA — PRIMARY (real customer conversations & internal documents — ground truth)'),
+            ('BB docs', 'BB — SECONDARY (reviewed external research — defer to AA on conflicts)'),
+            ('CC docs', 'CC — BACKGROUND (basic external research — defer to AA and BB on conflicts)'),
         ]
 
-        sections = []
+        # Char budget per tier: keep AA generous, trim CC aggressively (lowest priority)
+        tier_char_limits = {'AA docs': 200_000, 'BB docs': 150_000, 'CC docs': 100_000}
+
+        raw_sections = []
         for folder, label in source_config:
             folder_path = os.path.join(base, folder)
             if not os.path.isdir(folder_path):
                 continue
             files = sorted(f for f in os.listdir(folder_path) if f.endswith('.md'))
+            tier_parts = []
             for filename in files:
                 filepath = os.path.join(folder_path, filename)
                 try:
                     with open(filepath, 'r', encoding='utf-8') as f:
                         content = f.read().strip()
-                    sections.append(f"=== {label} | {filename} ===\n{content}")
+                    tier_parts.append(f"[{filename}]\n{content}")
                 except Exception:
                     pass
+            if tier_parts:
+                combined = '\n\n'.join(tier_parts)
+                limit = tier_char_limits.get(folder, 100_000)
+                if len(combined) > limit:
+                    combined = combined[:limit] + '\n[... truncated ...]'
+                raw_sections.append(f"=== {label} ===\n{combined}")
 
-        if sections:
-            header = (
-                "SOURCE PRIORITY RULES:\n"
-                "1. AA docs are ground truth — real customer conversations and internal Air2Energy documents.\n"
-                "2. BB docs are secondary — reviewed external research that supports AA.\n"
-                "3. CC docs are background only — basic external research.\n"
-                "When any sources conflict, always prioritise AA over BB over CC.\n"
-                "\n"
+        if not raw_sections:
+            return self._context_fallback()
+
+        print("Summarising context into compact system prompt...")
+        return self._summarise_context('\n\n'.join(raw_sections))
+
+    def _summarise_context(self, raw_context: str) -> str:
+        """Condense raw prioritised context into a ≤2000-word system prompt via Claude."""
+        summarise_prompt = (
+            "You are preparing a compact system prompt for an AI market research agent for Air2Energy.\n\n"
+            "Air2Energy makes bolt-on electrochemical systems that retrofit onto existing gas boilers, "
+            "filter CO₂ from the exhaust, and convert it into electricity fed back into the building. "
+            "No fuel change, no operational disruption.\n\n"
+            "Below is the full research context split into source tiers.\n"
+            "SOURCE PRIORITY: AA (internal docs/real customer conversations) is ground truth. "
+            "BB (reviewed external research) is secondary. CC (basic external research) is background only. "
+            "When sources conflict, AA overrides BB overrides CC.\n\n"
+            f"{raw_context}\n\n"
+            "Produce a single compact system prompt of NO MORE THAN 2000 WORDS covering:\n"
+            "1. What Air2Energy does and its core value proposition\n"
+            "2. Ideal customer profile — industry, infrastructure requirements, pain points\n"
+            "3. Key market insights (draw from AA first, supplement with BB and CC)\n"
+            "4. Fit scoring criteria: gas boiler infrastructure (30%), portfolio size (25%), "
+            "sustainability commitments (20%), tech adoption appetite (15%), decision-maker "
+            "accessibility (10%)\n"
+            "5. Common objections or challenges surfaced in real customer conversations (AA only)\n"
+            "6. Notable named companies or sectors identified as strong targets\n\n"
+            "Write as a dense factual briefing — key insights only, no raw data, no tables, no filler. "
+            "Open with one sentence stating the AA > BB > CC priority rule."
+        )
+
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=3000,
+                messages=[{'role': 'user', 'content': summarise_prompt}]
             )
-            return header + '\n\n'.join(sections)
+            summary = response.content[0].text.strip() if response.content else ''
+            if summary:
+                return summary
+        except Exception as e:
+            print(f"Warning: context summarisation failed ({e}), using fallback.")
 
+        return self._context_fallback()
+
+    def _context_fallback(self) -> str:
         return (
-            "Air2Energy creates retrofit systems that capture CO₂ from gas boiler exhaust and convert it to electricity.\n"
-            "Target customers: commercial property managers with gas boilers, high Scope 1 emissions, net zero targets.\n"
-            "Solution: 2.5-8 year payback, 70% margins, bolt-on retrofit, no operational disruption."
+            "SOURCE PRIORITY: AA (internal docs/customer conversations) overrides BB (reviewed research) "
+            "overrides CC (background research).\n\n"
+            "Air2Energy creates bolt-on electrochemical systems that retrofit onto existing gas boilers, "
+            "filter CO₂ from exhaust, and convert it into electricity fed back into the building. "
+            "No fuel change, no operational disruption. 2.5–8 year payback, ~70% margins.\n\n"
+            "TARGET CUSTOMERS: Commercial property groups and building owners operating gas boilers at "
+            "scale, particularly NABERS-rated buildings still on gas. High Scope 1 emissions from natural "
+            "gas, sustainability commitments, net zero targets.\n\n"
+            "SCORING: Gas boiler infrastructure (30%), portfolio size (25%), sustainability commitments "
+            "(20%), tech adoption appetite (15%), decision-maker accessibility (10%)."
         )
 
     def research_company(self, company_name: str) -> Dict[str, Any]:
