@@ -33,33 +33,61 @@ class Air2EnergyMarketAgent:
         self.context = self._load_air2energy_context()
 
     def _load_air2energy_context(self) -> str:
-        """Load the Air2Energy brief for context."""
-        try:
-            with open('/Users/andrewsmithyman/air2energy-tools/AIR2ENERGY_MARKET_BRIEF.md', 'r') as f:
-                return f.read()
-        except FileNotFoundError:
-            return """
-            Air2Energy creates retrofit systems that capture CO₂ from gas boiler exhaust and convert it to electricity.
+        """Load context files in priority order: AA (primary) > BB (secondary) > CC (background).
 
-            TARGET CUSTOMERS:
-            - Commercial property managers (Westfield, Lendlease)
-            - Multi-tenant buildings with gas heating
-            - Industrial facilities with gas boilers
-            - High Scope 1 emissions from natural gas
-            - Sustainability commitments & net zero targets
-            - Building Management System (BMS) infrastructure
-            - ASRS compliance requirements (Australia)
+        AA docs: real customer conversations and internal documents — ground truth.
+        BB docs: reviewed external research — secondary, supports AA.
+        CC docs: basic external research — background only.
+        When sources conflict, AA always wins over BB, BB over CC.
+        """
+        base = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'context', 'Market reserch')
 
-            SOLUTION: 2.5-8 year payback, 70% margins, retrofit system, no operational disruption
+        source_config = [
+            (
+                'AA docs',
+                'AA — PRIMARY SOURCE | Real customer conversations & internal documents | GROUND TRUTH — highest authority',
+            ),
+            (
+                'BB docs',
+                'BB — SECONDARY SOURCE | Reviewed external research | Treat as supporting evidence; defer to AA on any conflict',
+            ),
+            (
+                'CC docs',
+                'CC — BACKGROUND SOURCE | Basic external research | Background context only; defer to AA and BB on any conflict',
+            ),
+        ]
 
-            SCORING CRITERIA:
-            - Gas boiler infrastructure (high priority)
-            - Scope 1 emissions from natural gas
-            - Sustainability investments & commitments
-            - Commercial/industrial property portfolio size
-            - BMS infrastructure in place
-            - Net zero targets and timelines
-            """
+        sections = []
+        for folder, label in source_config:
+            folder_path = os.path.join(base, folder)
+            if not os.path.isdir(folder_path):
+                continue
+            files = sorted(f for f in os.listdir(folder_path) if f.endswith('.md'))
+            for filename in files:
+                filepath = os.path.join(folder_path, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        content = f.read().strip()
+                    sections.append(f"=== {label} | {filename} ===\n{content}")
+                except Exception:
+                    pass
+
+        if sections:
+            header = (
+                "SOURCE PRIORITY RULES:\n"
+                "1. AA docs are ground truth — real customer conversations and internal Air2Energy documents.\n"
+                "2. BB docs are secondary — reviewed external research that supports AA.\n"
+                "3. CC docs are background only — basic external research.\n"
+                "When any sources conflict, always prioritise AA over BB over CC.\n"
+                "\n"
+            )
+            return header + '\n\n'.join(sections)
+
+        return (
+            "Air2Energy creates retrofit systems that capture CO₂ from gas boiler exhaust and convert it to electricity.\n"
+            "Target customers: commercial property managers with gas boilers, high Scope 1 emissions, net zero targets.\n"
+            "Solution: 2.5-8 year payback, 70% margins, bolt-on retrofit, no operational disruption."
+        )
 
     def research_company(self, company_name: str) -> Dict[str, Any]:
         """Research a company using web search and Anthropic API."""
@@ -69,7 +97,8 @@ class Air2EnergyMarketAgent:
 
         Research the company "{company_name}" and provide detailed analysis for potential fit with Air2Energy's solution.
 
-        CONTEXT: {self.context}
+        CONTEXT (read all sources; when sources conflict, AA overrides BB which overrides CC):
+        {self.context}
 
         Please search the web and provide comprehensive information about:
 
@@ -145,7 +174,7 @@ class Air2EnergyMarketAgent:
         COMPANY RESEARCH DATA:
         {research_data.get('research_content', 'No research data available')}
 
-        AIR2ENERGY CONTEXT:
+        AIR2ENERGY CONTEXT (AA = ground truth, BB = secondary, CC = background; AA overrides BB overrides CC on any conflict):
         {self.context}
 
         Based on this research, provide a comprehensive analysis with the following structure:
