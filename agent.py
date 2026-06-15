@@ -27,7 +27,7 @@ class Air2EnergyMarketAgent:
             raise ValueError("ANTHROPIC_API_KEY environment variable not set")
 
         self.client = anthropic.Anthropic(api_key=self.api_key)
-        self.model = "claude-sonnet-4-20250514"  # Using Sonnet 4 as requested
+        self.model = "claude-sonnet-4-6"  # Using Sonnet 4 as requested
 
         # Load Air2Energy context
         self.context = self._load_air2energy_context()
